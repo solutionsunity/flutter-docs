@@ -684,12 +684,21 @@ class _ProductListPageState extends State<ProductListPage> {
 - ✅ Less boilerplate and cleaner code
 - ✅ Follows Flutter best practices for declarative UI
 
-### ✅ DO: Use StatefulWidget only for local UI state
+### ✅ DO: Use StatefulWidget ONLY for framework controllers that require disposal
 
-StatefulWidget is acceptable when managing **local UI state** that doesn't belong in Cubit:
+**CRITICAL RULE:** When using Cubit or BLoC for state management, use **StatelessWidget** for all screens and widgets. The ONLY exception is when you need to manage framework controllers that require disposal.
+
+**Acceptable use cases for StatefulWidget with Cubit/BLoC:**
+- TextEditingController (requires disposal)
+- AnimationController (requires disposal)
+- TabController (requires disposal)
+- ScrollController (requires disposal)
+- FocusNode (requires disposal)
+
+**Important:** Even when using StatefulWidget for controllers, ALL business logic and UI state must remain in the Cubit/BLoC.
 
 ```dart
-// ✅ CORRECT: StatefulWidget for TextEditingController (local UI state)
+// ✅ CORRECT: StatefulWidget ONLY for TextEditingController disposal
 class SearchBar extends StatefulWidget {
   const SearchBar({Key? key}) : super(key: key);
 
@@ -702,7 +711,7 @@ class _SearchBarState extends State<SearchBar> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController.dispose(); // ✅ Only reason for StatefulWidget
     super.dispose();
   }
 
@@ -712,14 +721,14 @@ class _SearchBarState extends State<SearchBar> {
       controller: _searchController,
       decoration: const InputDecoration(labelText: 'Search'),
       onSubmitted: (query) {
-        // ✅ Call Cubit method with local UI state
+        // ✅ Call Cubit method - business logic stays in Cubit
         context.read<ProductCubit>().searchProducts(query);
       },
     );
   }
 }
 
-// ✅ CORRECT: StatefulWidget for AnimationController (local UI state)
+// ✅ CORRECT: StatefulWidget ONLY for AnimationController disposal
 class AnimatedProductCard extends StatefulWidget {
   final Product product;
 
@@ -744,7 +753,7 @@ class _AnimatedProductCardState extends State<AnimatedProductCard>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller.dispose(); // ✅ Only reason for StatefulWidget
     super.dispose();
   }
 
@@ -758,19 +767,26 @@ class _AnimatedProductCardState extends State<AnimatedProductCard>
 }
 ```
 
-### When to use StatefulWidget with Cubit:
+### When to use StatefulWidget vs StatelessWidget with Cubit:
 
 | Use Case | Widget Type | Reason |
 |----------|-------------|--------|
-| **Screen/Page with Cubit** | StatelessWidget | Cubit manages all business state |
-| **TextEditingController** | StatefulWidget | Local UI state, not business logic |
-| **AnimationController** | StatefulWidget | Local UI state, not business logic |
-| **TabController** | StatefulWidget | Local UI state, not business logic |
-| **ScrollController** | StatefulWidget | Local UI state, not business logic |
-| **FocusNode** | StatefulWidget | Local UI state, not business logic |
-| **Bottom Navigation** | StatefulWidget | Local UI state (selected index) |
+| **Screen/Page with Cubit** | ✅ StatelessWidget | Cubit manages ALL state |
+| **Business logic state** | ✅ StatelessWidget | Cubit manages state |
+| **Loading/Error states** | ✅ StatelessWidget | Cubit manages state |
+| **Form validation** | ✅ StatelessWidget | Cubit manages state |
+| **Bottom Navigation index** | ✅ StatelessWidget | Cubit manages state |
+| **TextEditingController** | ⚠️ StatefulWidget | ONLY for disposal |
+| **AnimationController** | ⚠️ StatefulWidget | ONLY for disposal |
+| **TabController** | ⚠️ StatefulWidget | ONLY for disposal |
+| **ScrollController** | ⚠️ StatefulWidget | ONLY for disposal |
+| **FocusNode** | ⚠️ StatefulWidget | ONLY for disposal |
 
-**Key Rule:** If the state is managed by Cubit, use **StatelessWidget**. Only use **StatefulWidget** for local UI controllers and animations.
+**Key Rule:**
+- ✅ Use **StatelessWidget** for ALL screens when using Cubit/BLoC
+- ⚠️ Use **StatefulWidget** ONLY when you need to dispose framework controllers
+- ❌ NEVER use StatefulWidget with setState() for business logic when using Cubit/BLoC
+- ❌ NEVER mix setState() with Cubit state management (dual state management)
 
 ---
 
