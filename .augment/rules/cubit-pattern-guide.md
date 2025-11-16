@@ -684,85 +684,145 @@ class _ProductListPageState extends State<ProductListPage> {
 - ✅ Less boilerplate and cleaner code
 - ✅ Follows Flutter best practices for declarative UI
 
-### ✅ DO: Use StatefulWidget ONLY for framework controllers that require disposal
+### ✅ DO: Use StatelessWidget for EVERYTHING - Manage controllers in Cubit/BLoC
 
-**CRITICAL RULE:** When using Cubit or BLoC for state management, use **StatelessWidget** for all screens and widgets. The ONLY exception is when you need to manage framework controllers that require disposal.
+**CRITICAL RULE:** When using Cubit or BLoC for state management, **NEVER** use StatefulWidget. ALL widgets must be StatelessWidget, and ALL controllers must be managed inside the Cubit/BLoC.
 
-**Acceptable use cases for StatefulWidget with Cubit/BLoC:**
-- TextEditingController (requires disposal)
-- AnimationController (requires disposal)
-- TabController (requires disposal)
-- ScrollController (requires disposal)
-- FocusNode (requires disposal)
-
-**Important:** Even when using StatefulWidget for controllers, ALL business logic and UI state must remain in the Cubit/BLoC.
+**Why manage controllers in Cubit/BLoC:**
+- ✅ Single source of truth - all state in one place
+- ✅ Easier to test - controllers are part of Cubit state
+- ✅ No StatefulWidget needed - everything is StatelessWidget
+- ✅ Better separation of concerns
+- ✅ Controllers can be accessed from multiple widgets
+- ✅ Lifecycle managed by Cubit (automatic disposal)
 
 ```dart
-// ✅ CORRECT: StatefulWidget ONLY for TextEditingController disposal
-class SearchBar extends StatefulWidget {
-  const SearchBar({Key? key}) : super(key: key);
+// ✅ CORRECT: TextEditingController managed in Cubit
+class SearchCubit extends Cubit<SearchState> {
+  final TextEditingController searchController = TextEditingController();
+  final ProductRepository repository;
 
-  @override
-  State<SearchBar> createState() => _SearchBarState();
-}
+  SearchCubit({required this.repository}) : super(const SearchState.initial());
 
-class _SearchBarState extends State<SearchBar> {
-  final _searchController = TextEditingController();
+  void searchProducts(String query) {
+    emit(SearchState.loading());
+    // Use controller value or passed query
+    final searchQuery = query.isEmpty ? searchController.text : query;
+    // Search logic...
+  }
 
-  @override
-  void dispose() {
-    _searchController.dispose(); // ✅ Only reason for StatefulWidget
-    super.dispose();
+  void clearSearch() {
+    searchController.clear();
+    emit(const SearchState.initial());
   }
 
   @override
+  Future<void> close() {
+    searchController.dispose(); // ✅ Disposed in Cubit
+    return super.close();
+  }
+}
+
+// ✅ CORRECT: StatelessWidget using controller from Cubit
+class SearchBar extends StatelessWidget {
+  const SearchBar({Key? key}) : super(key: key);
+
+  @override
   Widget build(BuildContext context) {
+    final cubit = context.read<SearchCubit>();
+
     return TextField(
-      controller: _searchController,
+      controller: cubit.searchController, // ✅ Controller from Cubit
       decoration: const InputDecoration(labelText: 'Search'),
-      onSubmitted: (query) {
-        // ✅ Call Cubit method - business logic stays in Cubit
-        context.read<ProductCubit>().searchProducts(query);
-      },
+      onSubmitted: cubit.searchProducts,
     );
   }
 }
 
-// ✅ CORRECT: StatefulWidget ONLY for AnimationController disposal
-class AnimatedProductCard extends StatefulWidget {
+// ✅ CORRECT: AnimationController managed in Cubit
+class ProductAnimationCubit extends Cubit<ProductAnimationState> {
+  late final AnimationController animationController;
+
+  ProductAnimationCubit({required TickerProvider vsync})
+      : super(const ProductAnimationState.initial()) {
+    animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: vsync,
+    );
+  }
+
+  void startAnimation() {
+    animationController.forward();
+    emit(const ProductAnimationState.animating());
+  }
+
+  void resetAnimation() {
+    animationController.reset();
+    emit(const ProductAnimationState.initial());
+  }
+
+  @override
+  Future<void> close() {
+    animationController.dispose(); // ✅ Disposed in Cubit
+    return super.close();
+  }
+}
+
+// ✅ CORRECT: StatelessWidget using animation from Cubit
+class AnimatedProductCard extends StatelessWidget {
   final Product product;
 
   const AnimatedProductCard({Key? key, required this.product}) : super(key: key);
 
   @override
-  State<AnimatedProductCard> createState() => _AnimatedProductCardState();
+  Widget build(BuildContext context) {
+    final cubit = context.read<ProductAnimationCubit>();
+
+    return FadeTransition(
+      opacity: cubit.animationController, // ✅ Controller from Cubit
+      child: ProductCard(product: product),
+    );
+  }
 }
 
-class _AnimatedProductCardState extends State<AnimatedProductCard>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+// ✅ CORRECT: Form with multiple controllers in Cubit
+class LoginCubit extends Cubit<LoginState> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final FocusNode emailFocusNode = FocusNode();
+  final FocusNode passwordFocusNode = FocusNode();
+  final AuthRepository repository;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
+  LoginCubit({required this.repository}) : super(const LoginState.initial());
+
+  Future<void> login() async {
+    emit(const LoginState.loading());
+
+    final email = emailController.text;
+    final password = passwordController.text;
+
+    final result = await repository.login(email, password);
+
+    result.fold(
+      (failure) => emit(LoginState.error(failure.message)),
+      (user) => emit(LoginState.success(user)),
     );
   }
 
-  @override
-  void dispose() {
-    _controller.dispose(); // ✅ Only reason for StatefulWidget
-    super.dispose();
+  void clearForm() {
+    emailController.clear();
+    passwordController.clear();
+    emailFocusNode.unfocus();
+    passwordFocusNode.unfocus();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _controller,
-      child: ProductCard(product: widget.product),
-    );
+  Future<void> close() {
+    emailController.dispose();
+    passwordController.dispose();
+    emailFocusNode.dispose();
+    passwordFocusNode.dispose();
+    return super.close();
   }
 }
 ```
@@ -776,17 +836,19 @@ class _AnimatedProductCardState extends State<AnimatedProductCard>
 | **Loading/Error states** | ✅ StatelessWidget | Cubit manages state |
 | **Form validation** | ✅ StatelessWidget | Cubit manages state |
 | **Bottom Navigation index** | ✅ StatelessWidget | Cubit manages state |
-| **TextEditingController** | ⚠️ StatefulWidget | ONLY for disposal |
-| **AnimationController** | ⚠️ StatefulWidget | ONLY for disposal |
-| **TabController** | ⚠️ StatefulWidget | ONLY for disposal |
-| **ScrollController** | ⚠️ StatefulWidget | ONLY for disposal |
-| **FocusNode** | ⚠️ StatefulWidget | ONLY for disposal |
+| **TextEditingController** | ✅ StatelessWidget | Cubit manages controller |
+| **AnimationController** | ✅ StatelessWidget | Cubit manages controller |
+| **TabController** | ✅ StatelessWidget | Cubit manages controller |
+| **ScrollController** | ✅ StatelessWidget | Cubit manages controller |
+| **FocusNode** | ✅ StatelessWidget | Cubit manages focus node |
 
 **Key Rule:**
-- ✅ Use **StatelessWidget** for ALL screens when using Cubit/BLoC
-- ⚠️ Use **StatefulWidget** ONLY when you need to dispose framework controllers
-- ❌ NEVER use StatefulWidget with setState() for business logic when using Cubit/BLoC
-- ❌ NEVER mix setState() with Cubit state management (dual state management)
+- ✅ Use **StatelessWidget** for EVERYTHING when using Cubit/BLoC
+- ✅ Manage ALL controllers inside Cubit/BLoC
+- ✅ Dispose controllers in Cubit's close() method
+- ❌ NEVER use StatefulWidget when using Cubit/BLoC
+- ❌ NEVER use setState() when using Cubit/BLoC
+- ❌ NEVER create controllers in widgets - always in Cubit/BLoC
 
 ---
 
