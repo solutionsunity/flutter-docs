@@ -169,6 +169,15 @@ The `legacy/` folder contains the original four documentation files that were ar
 
 ## 🔄 Version History
 
+- **v2.2.0** (2025-11-17) - BREAKING: Zero StatefulWidget policy with Cubit/BLoC
+  - **BREAKING CHANGE:** Updated cubit-pattern-guide.md to enforce strict StatelessWidget-only pattern
+  - NEVER use StatefulWidget when using Cubit/BLoC
+  - ALL controllers (TextEditingController, AnimationController, etc.) must be managed inside Cubit/BLoC
+  - Added comprehensive examples of controller management in Cubit
+  - Controllers disposed in Cubit's close() method
+  - Single source of truth - all state and controllers in Cubit/BLoC
+  - Benefits: easier testing, better separation of concerns, shared controller access
+
 - **v2.1.0** (2025-11-16) - Added official package reference guide
   - Created package-reference.md - Official Package Reference Guide (959 lines)
   - Comprehensive documentation for all officially used packages
@@ -212,7 +221,7 @@ For questions or suggestions about these guidelines:
 
 ---
 
-**Last Updated:** 2025-11-16
-**Version:** 2.1.0
+**Last Updated:** 2025-11-17
+**Version:** 2.2.0
 **Maintained by:** Flutter Development Team
 
