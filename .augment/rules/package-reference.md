@@ -16,6 +16,7 @@ description: "Example description"
 - [Animations](#animations)
 - [Image Handling](#image-handling)
 - [Backend & Database](#backend--database)
+- [Payment Processing](#payment-processing)
 - [Testing](#testing)
 - [Development Tools](#development-tools)
 - [Installation Guide](#installation-guide)
@@ -597,6 +598,623 @@ class ProductRepository {
 
 ---
 
+### onesignal_flutter ^5.3.4
+
+**Purpose:** Push notifications, in-app messages, email, and SMS messaging service for mobile apps
+
+**Why we use it:**
+- Free push notification service
+- Multi-channel messaging (push, in-app, email, SMS)
+- User segmentation and targeting
+- Real-time analytics and delivery tracking
+- Cross-platform support (iOS and Android)
+- Easy integration with Flutter apps
+- Rich notification features (images, action buttons, deep linking)
+
+**Official Documentation:** [OneSignal Flutter SDK Setup](https://documentation.onesignal.com/docs/en/flutter-sdk-setup)
+
+#### ✅ DO: Initialize OneSignal in main.dart
+
+```dart
+// ✅ CORRECT: OneSignal initialization
+import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
+
+  // Initialize OneSignal
+  // ⚠️ CRITICAL: Never hardcode your OneSignal App ID
+  // Always use environment variables
+  final oneSignalAppId = dotenv.env['ONESIGNAL_APP_ID']!;
+
+  OneSignal.initialize(oneSignalAppId);
+
+  // Request push notification permission (iOS)
+  OneSignal.Notifications.requestPermission(true);
+
+  runApp(const MyApp());
+}
+```
+
+#### ✅ DO: Handle notification events
+
+```dart
+// ✅ CORRECT: Listen to notification events
+class NotificationService {
+  static void initialize() {
+    // Handle notification opened
+    OneSignal.Notifications.addClickListener((event) {
+      print('Notification clicked: ${event.notification.notificationId}');
+
+      // Handle deep linking
+      final data = event.notification.additionalData;
+      if (data != null && data.containsKey('screen')) {
+        // Navigate to specific screen
+        navigateToScreen(data['screen']);
+      }
+    });
+
+    // Handle notification received while app is in foreground
+    OneSignal.Notifications.addForegroundWillDisplayListener((event) {
+      print('Notification received in foreground');
+
+      // You can prevent the notification from displaying
+      // event.preventDefault();
+
+      // Or modify the notification before displaying
+      event.notification.display();
+    });
+  }
+
+  static void navigateToScreen(String screen) {
+    // Your navigation logic here
+  }
+}
+```
+
+#### ✅ DO: Set user identification and tags
+
+```dart
+// ✅ CORRECT: Identify users and add tags for segmentation
+class UserService {
+  static Future<void> identifyUser(String userId) async {
+    // Set external user ID (your backend user ID)
+    await OneSignal.login(userId);
+  }
+
+  static Future<void> setUserTags(Map<String, String> tags) async {
+    // Add tags for user segmentation
+    await OneSignal.User.addTags(tags);
+  }
+
+  static Future<void> logout() async {
+    // Remove user identification
+    await OneSignal.logout();
+  }
+}
+
+// Usage example
+await UserService.identifyUser('user_123');
+await UserService.setUserTags({
+  'subscription_tier': 'premium',
+  'user_level': '10',
+  'preferred_language': 'en',
+});
+```
+
+#### ✅ DO: Use environment variables for OneSignal App ID
+
+```dart
+// ✅ CORRECT: Store OneSignal App ID in .env file
+// .env file:
+// ONESIGNAL_APP_ID=your-onesignal-app-id-here
+
+// main.dart:
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+
+  final oneSignalAppId = dotenv.env['ONESIGNAL_APP_ID']!;
+  OneSignal.initialize(oneSignalAppId);
+
+  runApp(const MyApp());
+}
+
+// .gitignore:
+// .env
+```
+
+#### ❌ DON'T: Hardcode OneSignal App ID
+
+```dart
+// ❌ INCORRECT: Hardcoded App ID exposes credentials
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // ❌ CRITICAL SECURITY ISSUE: Never hardcode credentials
+  OneSignal.initialize('12345678-1234-1234-1234-123456789012');
+
+  runApp(const MyApp());
+}
+```
+
+**Why it matters:**
+- ❌ Hardcoded credentials can be extracted from the app
+- ❌ Credentials committed to version control are exposed
+- ❌ Difficult to use different credentials for dev/staging/prod
+- ✅ Environment variables keep credentials secure
+- ✅ Easy to manage different environments
+
+#### ❌ DON'T: Request permission without context
+
+```dart
+// ❌ INCORRECT: Requesting permission immediately without explanation
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  OneSignal.initialize(oneSignalAppId);
+
+  // ❌ Bad UX: User doesn't know why they should allow notifications
+  OneSignal.Notifications.requestPermission(true);
+
+  runApp(const MyApp());
+}
+```
+
+#### ✅ DO: Request permission with context
+
+```dart
+// ✅ CORRECT: Show explanation before requesting permission
+class NotificationPermissionScreen extends StatelessWidget {
+  const NotificationPermissionScreen({Key? key}) : super(key: key);
+
+  Future<void> _requestPermission(BuildContext context) async {
+    final hasPermission = await OneSignal.Notifications.requestPermission(true);
+
+    if (hasPermission) {
+      // Navigate to next screen
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      // Show message explaining benefits
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enable notifications to receive important updates'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.notifications, size: 100),
+            const SizedBox(height: 24),
+            const Text(
+              'Stay Updated',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                'Get notified about new features, updates, and special offers',
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () => _requestPermission(context),
+              child: const Text('Enable Notifications'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/home');
+              },
+              child: const Text('Maybe Later'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+```
+
+**Why it matters:**
+- ❌ Immediate permission requests have low acceptance rates
+- ❌ Users don't understand the value of notifications
+- ✅ Contextual permission requests increase acceptance by 2-3x
+- ✅ Better user experience and engagement
+
+#### Platform-Specific Setup
+
+**Android Setup:**
+- OneSignal automatically handles Firebase Cloud Messaging (FCM) setup
+- No additional configuration needed beyond adding the package
+
+**iOS Setup:**
+1. Add Push Notifications capability in Xcode
+2. Add Background Modes capability (Remote notifications)
+3. Add App Group capability
+4. Add Notification Service Extension for rich notifications
+5. Configure APNs certificates in OneSignal dashboard
+
+See [OneSignal Flutter SDK Setup](https://documentation.onesignal.com/docs/en/flutter-sdk-setup) for detailed iOS setup instructions.
+
+#### Best Practices
+
+**✅ DO:**
+- Use external user IDs to identify users across devices
+- Add tags for user segmentation and personalization
+- Handle notification clicks for deep linking
+- Test notifications on both iOS and Android devices
+- Use in-app messages for onboarding and engagement
+- Respect user privacy and consent preferences
+
+**❌ DON'T:**
+- Send too many notifications (causes users to disable them)
+- Request permission without explaining the value
+- Hardcode OneSignal App ID or credentials
+- Ignore notification click events
+- Send generic notifications (use segmentation and personalization)
+
+---
+
+## Payment Processing
+
+### moyasar ^2.1.1
+
+**Purpose:** Payment gateway for accepting Apple Pay, STC Pay, and Credit Card payments in Saudi Arabia
+
+**Why we use it:**
+- Supports multiple payment methods (Apple Pay, STC Pay, Credit Card)
+- Managed 3DS (3D Secure) authentication for credit cards
+- Saudi Arabia-focused payment gateway
+- Easy integration with Flutter apps
+- Sandbox environment for testing
+- Secure payment processing with PCI compliance
+- Real-time payment status updates
+
+**Official Documentation:** [Moyasar Flutter SDK](https://docs.moyasar.com/category/flutter)
+
+#### ✅ DO: Use environment variables for API keys
+
+```dart
+// ✅ CORRECT: Store Moyasar API keys in .env file
+// .env file:
+// MOYASAR_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+// MOYASAR_SECRET_KEY=sk_test_your_secret_key_here
+// MOYASAR_APPLE_PAY_MERCHANT_ID=merchant.com.yourcompany.app
+
+// main.dart:
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
+  runApp(const MyApp());
+}
+
+// payment_config.dart:
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class PaymentConfig {
+  static String get publishableKey => dotenv.env['MOYASAR_PUBLISHABLE_KEY']!;
+  static String get appleMerchantId => dotenv.env['MOYASAR_APPLE_PAY_MERCHANT_ID']!;
+}
+
+// .gitignore:
+// .env
+```
+
+#### ✅ DO: Use Moyasar widgets for payment
+
+```dart
+// ✅ CORRECT: Using Moyasar's built-in widgets
+import 'package:flutter/material.dart';
+import 'package:moyasar/moyasar.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+class CheckoutScreen extends StatelessWidget {
+  final double totalAmount;
+  final String orderId;
+
+  const CheckoutScreen({
+    Key? key,
+    required this.totalAmount,
+    required this.orderId,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final paymentConfig = PaymentConfig(
+      publishableApiKey: dotenv.env['MOYASAR_PUBLISHABLE_KEY']!,
+      amount: (totalAmount * 100).toInt(), // Amount in halalas (SAR 257.58 = 25758)
+      description: 'Order #$orderId',
+      metadata: {
+        'order_id': orderId,
+        'customer_id': 'user_123',
+      },
+      creditCard: CreditCardConfig(
+        saveCard: true,
+        manual: false,
+      ),
+      applePay: ApplePayConfig(
+        merchantId: dotenv.env['MOYASAR_APPLE_PAY_MERCHANT_ID']!,
+        label: 'Your Store Name',
+        manual: false,
+      ),
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Payment')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Text(
+              'Total: SAR ${totalAmount.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 24),
+            ApplePay(
+              config: paymentConfig,
+              onPaymentResult: _onPaymentResult,
+            ),
+            const SizedBox(height: 16),
+            const Text('or'),
+            const SizedBox(height: 16),
+            CreditCard(
+              config: paymentConfig,
+              onPaymentResult: _onPaymentResult,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _onPaymentResult(result) {
+    if (result is PaymentResponse) {
+      switch (result.status) {
+        case PaymentStatus.paid:
+          // ✅ Payment successful
+          print('Payment successful: ${result.id}');
+          // Navigate to success screen
+          break;
+        case PaymentStatus.failed:
+          // ❌ Payment failed
+          print('Payment failed: ${result.source?.message}');
+          // Show error message to user
+          break;
+        case PaymentStatus.initiated:
+          // ⏳ Payment initiated (3DS in progress)
+          print('Payment initiated: ${result.id}');
+          break;
+      }
+    }
+  }
+}
+```
+
+#### ✅ DO: Handle payment results properly
+
+```dart
+// ✅ CORRECT: Comprehensive payment result handling
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:moyasar/moyasar.dart';
+
+class PaymentCubit extends Cubit<PaymentState> {
+  PaymentCubit() : super(const PaymentState.initial());
+
+  void handlePaymentResult(dynamic result) {
+    if (result is PaymentResponse) {
+      switch (result.status) {
+        case PaymentStatus.paid:
+          emit(PaymentState.success(
+            paymentId: result.id,
+            amount: result.amount / 100, // Convert halalas to SAR
+          ));
+          // Send confirmation to backend
+          _confirmPaymentWithBackend(result.id);
+          break;
+
+        case PaymentStatus.failed:
+          final errorMessage = result.source?.message ?? 'Payment failed';
+          emit(PaymentState.error(errorMessage));
+          break;
+
+        case PaymentStatus.initiated:
+          emit(const PaymentState.processing());
+          break;
+      }
+    } else {
+      emit(const PaymentState.error('Unknown payment result'));
+    }
+  }
+
+  Future<void> _confirmPaymentWithBackend(String paymentId) async {
+    try {
+      // Verify payment with your backend
+      await _paymentRepository.verifyPayment(paymentId);
+    } catch (e) {
+      print('Error confirming payment: $e');
+    }
+  }
+}
+```
+
+#### ❌ DON'T: Hardcode API keys
+
+```dart
+// ❌ INCORRECT: Hardcoded API keys expose credentials
+import 'package:moyasar/moyasar.dart';
+
+class CheckoutScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final paymentConfig = PaymentConfig(
+      // ❌ CRITICAL SECURITY ISSUE: Never hardcode API keys
+      publishableApiKey: 'pk_test_1234567890abcdef',
+      amount: 25758,
+      description: 'Order #123',
+      applePay: ApplePayConfig(
+        // ❌ Hardcoded merchant ID
+        merchantId: 'merchant.com.myapp',
+        label: 'My Store',
+        manual: false,
+      ),
+    );
+
+    return CreditCard(
+      config: paymentConfig,
+      onPaymentResult: (result) {},
+    );
+  }
+}
+```
+
+**Why it matters:**
+- ❌ Hardcoded credentials can be extracted from the app
+- ❌ Credentials committed to version control are exposed
+- ❌ Difficult to use different credentials for dev/staging/prod
+- ❌ Security risk if publishable key is compromised
+- ✅ Environment variables keep credentials secure
+- ✅ Easy to manage different environments (test/live)
+
+#### ❌ DON'T: Trust client-side payment status alone
+
+```dart
+// ❌ INCORRECT: Only checking client-side payment status
+void _onPaymentResult(result) {
+  if (result is PaymentResponse && result.status == PaymentStatus.paid) {
+    // ❌ BAD: Trusting client-side status without backend verification
+    _orderRepository.markOrderAsPaid(orderId);
+    Navigator.pushNamed(context, '/order-success');
+  }
+}
+```
+
+#### ✅ DO: Verify payments on the backend
+
+```dart
+// ✅ CORRECT: Verify payment with backend before fulfilling order
+void _onPaymentResult(result) async {
+  if (result is PaymentResponse && result.status == PaymentStatus.paid) {
+    try {
+      // ✅ Verify payment with backend using Moyasar secret key
+      final verified = await _paymentRepository.verifyPayment(result.id);
+
+      if (verified) {
+        // Only mark as paid after backend verification
+        await _orderRepository.markOrderAsPaid(orderId);
+        Navigator.pushNamed(context, '/order-success');
+      } else {
+        _showError('Payment verification failed');
+      }
+    } catch (e) {
+      _showError('Error verifying payment: $e');
+    }
+  }
+}
+
+// Backend verification (using Moyasar API)
+class PaymentRepository {
+  Future<bool> verifyPayment(String paymentId) async {
+    final response = await http.get(
+      Uri.parse('https://api.moyasar.com/v1/payments/$paymentId'),
+      headers: {
+        'Authorization': 'Basic ${base64Encode(utf8.encode('${dotenv.env['MOYASAR_SECRET_KEY']}:'))}',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final payment = json.decode(response.body);
+      return payment['status'] == 'paid';
+    }
+    return false;
+  }
+}
+```
+
+**Why it matters:**
+- ❌ Client-side checks can be bypassed
+- ❌ Users could manipulate payment status
+- ❌ Risk of fulfilling orders without actual payment
+- ✅ Backend verification ensures payment was actually processed
+- ✅ Protects against fraud and manipulation
+
+#### Platform-Specific Setup
+
+**iOS Setup (Apple Pay):**
+1. Follow [Apple Pay setup guide](https://docs.moyasar.com/guides/apple-pay-using-developer-account) to configure your Apple Developer account
+2. Enable Apple Pay capability in Xcode:
+   - Open `ios/Runner.xcworkspace` in Xcode
+   - Select Runner target → Signing & Capabilities
+   - Click "+ Capability" → Add "Apple Pay"
+   - Add your Merchant ID
+3. Add merchant ID to `Info.plist` (handled automatically by the package)
+
+**Android Setup (Credit Card):**
+1. Set minimum SDK version in `android/app/build.gradle`:
+```gradle
+android {
+    defaultConfig {
+        minSdkVersion 21  // Required for Moyasar
+    }
+}
+```
+
+#### Testing
+
+**Credit Card Testing:**
+Moyasar provides test cards for sandbox environment:
+
+| Card Number | Scenario | CVV | Expiry |
+|-------------|----------|-----|--------|
+| 4111111111111111 | Successful payment | Any 3 digits | Any future date |
+| 5200000000000007 | Failed payment | Any 3 digits | Any future date |
+| 4000000000000002 | 3DS authentication required | Any 3 digits | Any future date |
+
+**Apple Pay Testing:**
+- Use a real iOS device (not simulator)
+- Add a test card to Apple Wallet
+- Use sandbox environment for testing
+- See [Moyasar Apple Pay testing guide](https://docs.moyasar.com/guides/apple-pay-testing)
+
+#### Best Practices
+
+**✅ DO:**
+- Store API keys in environment variables (.env file)
+- Verify payments on the backend before fulfilling orders
+- Handle all payment statuses (paid, failed, initiated)
+- Use proper error handling and user feedback
+- Test with sandbox environment before going live
+- Convert amounts to halalas (multiply by 100)
+- Add metadata to payments for tracking
+- Implement proper loading states during payment
+
+**❌ DON'T:**
+- Hardcode API keys or merchant IDs
+- Trust client-side payment status alone
+- Forget to handle 3DS authentication flow
+- Use production keys in development
+- Ignore payment errors or edge cases
+- Store sensitive card data in your app
+- Process payments without user confirmation
+
+---
+
 ## Testing
 
 ### mocktail ^1.0.4
@@ -1032,6 +1650,13 @@ dependencies:
 
   # Backend
   supabase_flutter: ^2.0.0
+  onesignal_flutter: ^5.3.4
+
+  # Payment Processing
+  moyasar: ^2.1.1
+
+  # Environment Variables
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -1168,6 +1793,9 @@ dependencies:
 | **Animations** | confetti | ^0.7.0 | Celebration effects |
 | **Images** | cached_network_image | ^3.3.0 | Network image caching |
 | **Backend** | supabase_flutter | ^2.0.0 | Backend services |
+| **Backend** | onesignal_flutter | ^5.3.4 | Push notifications |
+| **Payments** | moyasar | ^2.1.1 | Payment gateway (Apple Pay, STC Pay, Credit Card) |
+| **Environment** | flutter_dotenv | ^5.1.0 | Environment variables |
 | **Testing** | mocktail | ^1.0.4 | Mocking for tests |
 | **Testing** | bloc_test | ^9.1.7 | BLoC testing |
 | **Dev Tools** | flutter_lints | ^5.0.0 | Code quality |
@@ -1180,19 +1808,25 @@ dependencies:
 2. shimmer + cached_network_image (UI/UX)
 3. animations + flutter_animate (animations)
 4. supabase_flutter (backend)
-5. mocktail + bloc_test (testing)
-6. flutter_lints (code quality)
+5. flutter_dotenv (environment variables)
+6. mocktail + bloc_test (testing)
+7. flutter_lints (code quality)
+
+**For projects with specific needs:**
+- **Push Notifications:** onesignal_flutter
+- **Payment Processing:** moyasar (Saudi Arabia payments)
 
 **Related Documentation:**
 - [BLoC Pattern Guide](bloc-pattern-guide.md) - Detailed BLoC implementation
 - [Supabase Integration Guide](supabase-integration-guide.md) - Backend setup
 - [Testing Guide](testing-guide.md) - Testing strategies
 - [Core Principles](core-principles.md) - General best practices
+- [Security Best Practices](security-best-practices.md) - API keys and security
 
 ---
 
-**Last Updated:** 2025-11-16
-**Version:** 1.0.0
+**Last Updated:** 2025-11-17
+**Version:** 1.1.0
 
 
 
