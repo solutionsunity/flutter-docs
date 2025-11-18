@@ -155,6 +155,20 @@ docs/
 - ✅ Avoid dual state management (setState + Cubit)
 - ✅ Single source of truth for business logic
 
+### Widget Organization
+- ✅ **CRITICAL:** Each widget must be in its own separate file
+- ✅ **CRITICAL:** Screen/view files should not exceed 120-150 lines
+- ✅ Extract any widget logic beyond this limit into separate widget files
+- ✅ Use feature-first folder structure: group related widgets together
+- ✅ Name widget files using snake_case matching the widget class name (e.g., `user_profile_card.dart` for `UserProfileCard`)
+
+**Why it matters:**
+- ✅ Improves code reusability and testability
+- ✅ Makes code easier to navigate and maintain
+- ✅ Enforces separation of concerns
+- ✅ Reduces merge conflicts in team environments
+- ✅ Keeps files focused and manageable
+
 ---
 
 ## 📖 Legacy Documentation
@@ -168,6 +182,14 @@ The `legacy/` folder contains the original four documentation files that were ar
 ---
 
 ## 🔄 Version History
+
+- **v2.3.0** (2025-11-18) - Added Widget Organization principle
+  - Added new "Widget Organization" section to Key Principles
+  - CRITICAL: Each widget must be in its own separate file
+  - CRITICAL: Screen/view files should not exceed 120-150 lines
+  - Extract widget logic beyond limit into separate widget files
+  - Use feature-first folder structure with snake_case naming
+  - Benefits: improved reusability, testability, maintainability, reduced merge conflicts
 
 - **v2.2.0** (2025-11-17) - BREAKING: Zero StatefulWidget policy with Cubit/BLoC
   - **BREAKING CHANGE:** Updated cubit-pattern-guide.md to enforce strict StatelessWidget-only pattern
@@ -221,7 +243,7 @@ For questions or suggestions about these guidelines:
 
 ---
 
-**Last Updated:** 2025-11-17
-**Version:** 2.2.0
+**Last Updated:** 2025-11-18
+**Version:** 2.3.0
 **Maintained by:** Flutter Development Team
 
