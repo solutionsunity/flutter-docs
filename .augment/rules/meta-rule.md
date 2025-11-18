@@ -18,6 +18,7 @@ Core rule for Flutter development. Contains all critical information in compress
 
 **Repository:** `/opt/flutter/flutter-docs`
 **Documentation:** `.augment/rules/` (comprehensive Flutter guidelines)
+**Projects Workspace:** `/opt/flutter/workarea` (location for new Flutter projects)
 **Current Version:** v2.4.0
 **Platform:** Flutter SDK, Dart language
 **Package Manager:** pub (flutter pub add/remove)
