@@ -1611,6 +1611,373 @@ class AccessibleText extends StatelessWidget {
 
 ---
 
+### logger ^2.0.0
+
+**Purpose:** Beautiful, formatted console logs with different log levels (debug, info, warning, error) and customizable output
+
+**Why we use it:**
+- Professional, readable console output with colors and formatting
+- Multiple log levels for different scenarios (debug, info, warning, error)
+- Customizable output format (simple, pretty, or custom)
+- Better debugging experience than print()
+- Easy to filter logs by level
+- Stack trace support for errors
+
+**Related Documentation:** [Core Principles - Error Handling](core-principles.md#error-handling)
+
+#### Installation
+
+```yaml
+# pubspec.yaml
+dependencies:
+  logger: ^2.0.0
+```
+
+#### ✅ DO: Initialize logger and use appropriate log levels
+
+```dart
+// ✅ CORRECT: Create a logger instance and use appropriate levels
+import 'package:logger/logger.dart';
+
+class UserRepository {
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 2, // Number of method calls to be displayed
+      errorMethodCount: 8, // Number of method calls if stacktrace is provided
+      lineLength: 120, // Width of the output
+      colors: true, // Colorful log messages
+      printEmojis: true, // Print an emoji for each log message
+      printTime: false, // Should each log print contain a timestamp
+    ),
+  );
+
+  Future<User> fetchUser(String userId) async {
+    _logger.d('Fetching user with ID: $userId'); // Debug
+
+    try {
+      final response = await _apiClient.get('/users/$userId');
+      _logger.i('Successfully fetched user: ${response.data['name']}'); // Info
+      return User.fromJson(response.data);
+    } catch (e, stackTrace) {
+      _logger.e('Failed to fetch user', error: e, stackTrace: stackTrace); // Error
+      rethrow;
+    }
+  }
+
+  Future<void> updateUser(User user) async {
+    _logger.d('Updating user: ${user.id}');
+
+    if (user.email.isEmpty) {
+      _logger.w('User email is empty, this might cause issues'); // Warning
+    }
+
+    try {
+      await _apiClient.put('/users/${user.id}', data: user.toJson());
+      _logger.i('User updated successfully');
+    } catch (e, stackTrace) {
+      _logger.e('Failed to update user', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+}
+```
+
+#### ✅ DO: Use logger instead of print() for debugging
+
+```dart
+// ✅ CORRECT: Logger provides better debugging experience
+class AuthBloc extends Bloc<AuthEvent, AuthState> {
+  final Logger _logger = Logger();
+
+  AuthBloc() : super(const AuthState.initial()) {
+    on<LoginRequested>(_onLoginRequested);
+  }
+
+  Future<void> _onLoginRequested(
+    LoginRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    _logger.d('Login requested for email: ${event.email}');
+    emit(const AuthState.loading());
+
+    try {
+      final user = await _authRepository.login(event.email, event.password);
+      _logger.i('Login successful for user: ${user.id}');
+      emit(AuthState.authenticated(user));
+    } catch (e, stackTrace) {
+      _logger.e('Login failed', error: e, stackTrace: stackTrace);
+      emit(AuthState.error('Login failed: ${e.toString()}'));
+    }
+  }
+}
+```
+
+#### ✅ DO: Use different log levels appropriately
+
+```dart
+// ✅ CORRECT: Use appropriate log levels for different scenarios
+class PaymentService {
+  final Logger _logger = Logger();
+
+  Future<void> processPayment(Payment payment) async {
+    // Debug: Detailed information for debugging
+    _logger.d('Processing payment: ${payment.toJson()}');
+
+    // Info: General informational messages
+    _logger.i('Payment initiated for amount: ${payment.amount}');
+
+    // Warning: Potentially harmful situations
+    if (payment.amount > 10000) {
+      _logger.w('Large payment amount detected: ${payment.amount}');
+    }
+
+    try {
+      final result = await _paymentGateway.charge(payment);
+      _logger.i('Payment successful: ${result.transactionId}');
+    } catch (e, stackTrace) {
+      // Error: Error events with stack traces
+      _logger.e(
+        'Payment processing failed',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+}
+```
+
+#### ✅ DO: Configure logger for production
+
+```dart
+// ✅ CORRECT: Use simple printer in production, pretty printer in debug
+import 'package:flutter/foundation.dart';
+import 'package:logger/logger.dart';
+
+class AppLogger {
+  static Logger get instance {
+    return Logger(
+      printer: kReleaseMode
+          ? SimplePrinter() // Simple output in production
+          : PrettyPrinter(  // Pretty output in debug
+              methodCount: 2,
+              errorMethodCount: 8,
+              lineLength: 120,
+              colors: true,
+              printEmojis: true,
+            ),
+      level: kReleaseMode ? Level.warning : Level.debug, // Less verbose in production
+    );
+  }
+}
+
+// Usage
+class MyService {
+  final Logger _logger = AppLogger.instance;
+
+  void doSomething() {
+    _logger.d('Debug message'); // Only shown in debug mode
+    _logger.w('Warning message'); // Shown in both debug and production
+  }
+}
+```
+
+#### ❌ DON'T: Use print() instead of logger
+
+```dart
+// ❌ INCORRECT: print() is less informative and harder to filter
+class UserRepository {
+  Future<User> fetchUser(String userId) async {
+    print('Fetching user: $userId'); // ❌ No log level, no formatting
+
+    try {
+      final response = await _apiClient.get('/users/$userId');
+      print('Got response: $response'); // ❌ Hard to read
+      return User.fromJson(response.data);
+    } catch (e) {
+      print('Error: $e'); // ❌ No stack trace, no context
+      rethrow;
+    }
+  }
+}
+```
+
+**Why it matters:**
+- ❌ print() output is hard to read and filter
+- ❌ No log levels means you can't filter by severity
+- ❌ No automatic stack traces for errors
+- ❌ print() statements are removed in release builds
+- ✅ Logger provides professional, filterable output
+- ✅ Easy to disable debug logs in production
+
+#### ❌ DON'T: Log sensitive information
+
+```dart
+// ❌ INCORRECT: Logging sensitive data is a security risk
+class AuthService {
+  final Logger _logger = Logger();
+
+  Future<void> login(String email, String password) async {
+    // ❌ NEVER log passwords!
+    _logger.d('Login attempt - Email: $email, Password: $password');
+
+    final response = await _apiClient.post('/login', data: {
+      'email': email,
+      'password': password,
+    });
+
+    // ❌ NEVER log API keys or tokens!
+    _logger.d('Login response: ${response.data}'); // Contains auth token!
+  }
+}
+
+class PaymentService {
+  final Logger _logger = Logger();
+
+  Future<void> processPayment(CreditCard card) async {
+    // ❌ NEVER log credit card details!
+    _logger.d('Processing payment with card: ${card.number}');
+  }
+}
+```
+
+**Why it matters:**
+- ❌ Logs can be accessed by malicious actors
+- ❌ Sensitive data in logs violates privacy regulations (GDPR, PCI-DSS)
+- ❌ Logs might be stored in crash reporting services
+- ❌ Developers might accidentally commit logs with sensitive data
+- ✅ Only log non-sensitive information (user IDs, timestamps, status codes)
+
+#### ✅ DO: Log safely without exposing sensitive data
+
+```dart
+// ✅ CORRECT: Log useful information without sensitive data
+class AuthService {
+  final Logger _logger = Logger();
+
+  Future<void> login(String email, String password) async {
+    // ✅ Log email (not sensitive) but NOT password
+    _logger.d('Login attempt for email: $email');
+
+    try {
+      final response = await _apiClient.post('/login', data: {
+        'email': email,
+        'password': password,
+      });
+
+      // ✅ Log success without exposing token
+      _logger.i('Login successful for user: ${response.data['user_id']}');
+    } catch (e, stackTrace) {
+      // ✅ Log error without exposing credentials
+      _logger.e('Login failed for email: $email', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+}
+
+class PaymentService {
+  final Logger _logger = Logger();
+
+  Future<void> processPayment(Payment payment) async {
+    // ✅ Log payment ID and amount, not card details
+    _logger.d('Processing payment: ${payment.id}, amount: ${payment.amount}');
+
+    try {
+      final result = await _paymentGateway.charge(payment);
+      // ✅ Log transaction ID, not card details
+      _logger.i('Payment successful: ${result.transactionId}');
+    } catch (e, stackTrace) {
+      _logger.e('Payment failed: ${payment.id}', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+}
+```
+
+#### ❌ DON'T: Use logger excessively in production
+
+```dart
+// ❌ INCORRECT: Too much logging impacts performance
+class BadService {
+  final Logger _logger = Logger(level: Level.debug); // ❌ Debug level in production
+
+  Future<List<Item>> fetchItems() async {
+    _logger.d('Fetching items...'); // ❌ Unnecessary in production
+
+    final items = await _repository.getAll();
+
+    // ❌ Logging every item in a loop!
+    for (final item in items) {
+      _logger.d('Item: ${item.id}, ${item.name}, ${item.description}...');
+    }
+
+    _logger.d('Fetched ${items.length} items'); // ❌ Too verbose
+    return items;
+  }
+}
+```
+
+**Why it matters:**
+- ❌ Excessive logging impacts app performance
+- ❌ Fills up log storage unnecessarily
+- ❌ Makes it harder to find important logs
+- ✅ Use appropriate log levels (warning/error in production)
+- ✅ Only log important events in production
+
+#### Common Use Cases
+
+**1. Debugging API Calls:**
+```dart
+class ApiClient {
+  final Logger _logger = Logger();
+
+  Future<Response> get(String path) async {
+    _logger.d('GET request to: $path');
+
+    try {
+      final response = await _dio.get(path);
+      _logger.i('GET $path - Status: ${response.statusCode}');
+      return response;
+    } catch (e, stackTrace) {
+      _logger.e('GET $path failed', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
+  }
+}
+```
+
+**2. Tracking User Actions:**
+```dart
+class AnalyticsService {
+  final Logger _logger = Logger();
+
+  void trackEvent(String eventName, Map<String, dynamic> properties) {
+    _logger.i('Event: $eventName, Properties: $properties');
+    // Send to analytics service
+  }
+}
+```
+
+**3. Monitoring Background Tasks:**
+```dart
+class SyncService {
+  final Logger _logger = Logger();
+
+  Future<void> syncData() async {
+    _logger.i('Starting data sync...');
+
+    try {
+      final result = await _performSync();
+      _logger.i('Sync completed: ${result.itemsSynced} items');
+    } catch (e, stackTrace) {
+      _logger.e('Sync failed', error: e, stackTrace: stackTrace);
+    }
+  }
+}
+```
+
+---
+
 ## Installation Guide
 
 ### Complete pubspec.yaml Template
@@ -1658,6 +2025,9 @@ dependencies:
   # Environment Variables
   flutter_dotenv: ^5.1.0
 
+  # Logging
+  logger: ^2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -1688,6 +2058,7 @@ flutter:
    import 'package:flutter_bloc/flutter_bloc.dart';
    import 'package:equatable/equatable.dart';
    import 'package:shimmer/shimmer.dart';
+   import 'package:logger/logger.dart';
    import 'package:device_preview/device_preview.dart';
    // etc.
    ```
@@ -1796,9 +2167,11 @@ dependencies:
 | **Backend** | onesignal_flutter | ^5.3.4 | Push notifications |
 | **Payments** | moyasar | ^2.1.1 | Payment gateway (Apple Pay, STC Pay, Credit Card) |
 | **Environment** | flutter_dotenv | ^5.1.0 | Environment variables |
+| **Logging** | logger | ^2.0.0 | Beautiful console logs |
 | **Testing** | mocktail | ^1.0.4 | Mocking for tests |
 | **Testing** | bloc_test | ^9.1.7 | BLoC testing |
 | **Dev Tools** | flutter_lints | ^5.0.0 | Code quality |
+| **Dev Tools** | device_preview | ^1.1.0 | Multi-device preview |
 | **Icons** | cupertino_icons | ^1.0.8 | iOS-style icons |
 
 ### Quick Reference
@@ -1809,12 +2182,14 @@ dependencies:
 3. animations + flutter_animate (animations)
 4. supabase_flutter (backend)
 5. flutter_dotenv (environment variables)
-6. mocktail + bloc_test (testing)
-7. flutter_lints (code quality)
+6. logger (logging and debugging)
+7. mocktail + bloc_test (testing)
+8. flutter_lints (code quality)
 
 **For projects with specific needs:**
 - **Push Notifications:** onesignal_flutter
 - **Payment Processing:** moyasar (Saudi Arabia payments)
+- **Multi-device Testing:** device_preview
 
 **Related Documentation:**
 - [BLoC Pattern Guide](bloc-pattern-guide.md) - Detailed BLoC implementation
@@ -1825,8 +2200,8 @@ dependencies:
 
 ---
 
-**Last Updated:** 2025-11-17
-**Version:** 1.1.0
+**Last Updated:** 2025-11-18
+**Version:** 1.2.0
 
 
 
