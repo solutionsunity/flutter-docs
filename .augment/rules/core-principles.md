@@ -1,6 +1,6 @@
 ---
 type: "always_apply"
-description: "Example description"
+description: "Universal Flutter best practices including code quality, type safety, string constants management, performance optimization, error handling, and UI conventions applicable to all projects."
 ---
 
 # Flutter Development Guidelines - Core Principles

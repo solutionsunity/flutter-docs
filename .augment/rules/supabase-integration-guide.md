@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Integration patterns for Supabase including authentication, database operations, storage, real-time subscriptions, and Row Level Security policies for Flutter applications."
 ---
 
 # Supabase Integration Guide

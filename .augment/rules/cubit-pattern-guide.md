@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Simplified state management using Cubit pattern with emit() method, StatelessWidget integration, controller management inside Cubit, and testing strategies for medium to large Flutter applications."
 ---
 
 # Cubit Pattern Guide

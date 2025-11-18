@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Implementation guide for Clean Architecture with three-layer separation (Domain, Data, Presentation), dependency injection with GetIt, and feature-first organization for large-scale Flutter applications."
 ---
 
 # Clean Architecture Guide

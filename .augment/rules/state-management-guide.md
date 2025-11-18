@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Guide for choosing and implementing state management solutions (setState, Provider, BLoC, Cubit) based on project size and complexity with decision trees and migration strategies."
 ---
 
 # Flutter State Management Guide

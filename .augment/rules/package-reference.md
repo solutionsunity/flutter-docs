@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Reference documentation for officially approved packages including flutter_bloc, equatable, shimmer, animations, cached_network_image, supabase_flutter, mocktail, bloc_test, and flutter_lints with usage examples."
 ---
 
 # Official Package Reference Guide

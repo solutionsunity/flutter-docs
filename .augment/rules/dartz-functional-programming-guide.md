@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Functional programming patterns using Dartz including Either/Option types, failure handling hierarchy, functional composition, and integration with repositories and use cases."
 ---
 
 # Dartz Functional Programming Guide

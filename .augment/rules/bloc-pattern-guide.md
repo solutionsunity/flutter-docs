@@ -1,6 +1,6 @@
 ---
 type: "agent_requested"
-description: "Example description"
+description: "Event-driven state management using BLoC pattern including events, states, transformers, UI integration, and testing with bloc_test for complex Flutter applications."
 ---
 
 # BLoC Pattern Guide
