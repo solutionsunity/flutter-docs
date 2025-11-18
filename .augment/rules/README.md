@@ -183,6 +183,15 @@ The `legacy/` folder contains the original four documentation files that were ar
 
 ## 🔄 Version History
 
+- **v2.4.0** (2025-11-18) - Added String Constants Management principle
+  - Added new "Centralize String Constants" section to core-principles.md
+  - CRITICAL: All constant strings must be defined in centralized constants file
+  - Create `lib/core/constants/app_constants.dart` with organized constant classes
+  - Group constants: AppStrings, ApiEndpoints, StorageKeys, RouteNames
+  - No hardcoded strings for UI labels, error messages, routes, or API endpoints
+  - Updated Code Quality Checklist to include string constants verification
+  - Benefits: single source of truth, prevents typos, easier maintenance, simplifies localization
+
 - **v2.3.0** (2025-11-18) - Added Widget Organization principle
   - Added new "Widget Organization" section to Key Principles
   - CRITICAL: Each widget must be in its own separate file
@@ -244,6 +253,6 @@ For questions or suggestions about these guidelines:
 ---
 
 **Last Updated:** 2025-11-18
-**Version:** 2.3.0
+**Version:** 2.4.0
 **Maintained by:** Flutter Development Team
 

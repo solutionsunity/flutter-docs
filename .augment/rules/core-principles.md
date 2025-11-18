@@ -151,6 +151,184 @@ class _LoginScreenState extends State<LoginScreen> {
 
 ---
 
+### Principle: Centralize String Constants
+
+#### ✅ DO: Define all constant strings in a centralized constants file
+
+```dart
+// ✅ CORRECT: Centralized string constants
+// lib/core/constants/app_constants.dart
+class AppStrings {
+  // Private constructor to prevent instantiation
+  AppStrings._();
+
+  // UI Labels
+  static const String loginButton = 'Login';
+  static const String signUpButton = 'Sign Up';
+  static const String emailLabel = 'Email Address';
+  static const String passwordLabel = 'Password';
+  static const String submitButton = 'Submit';
+  static const String cancelButton = 'Cancel';
+
+  // Error Messages
+  static const String invalidEmailError = 'Please enter a valid email address';
+  static const String passwordTooShortError = 'Password must be at least 8 characters';
+  static const String requiredFieldError = 'This field is required';
+  static const String networkError = 'No internet connection. Please check your network.';
+
+  // Success Messages
+  static const String loginSuccess = 'Login successful!';
+  static const String profileUpdated = 'Profile updated successfully';
+}
+
+class ApiEndpoints {
+  ApiEndpoints._();
+
+  static const String baseUrl = 'https://api.example.com';
+  static const String users = '/users';
+  static const String products = '/products';
+  static const String orders = '/orders';
+}
+
+class StorageKeys {
+  StorageKeys._();
+
+  static const String userToken = 'user_token';
+  static const String themePreference = 'theme_preference';
+  static const String languageCode = 'language_code';
+}
+
+class RouteNames {
+  RouteNames._();
+
+  static const String home = '/home';
+  static const String login = '/login';
+  static const String profile = '/profile';
+  static const String settings = '/settings';
+}
+
+// Usage in widgets
+class LoginScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          TextField(
+            decoration: InputDecoration(
+              labelText: AppStrings.emailLabel, // ✅ Using constant
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            child: Text(AppStrings.loginButton), // ✅ Using constant
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Usage in validation
+String? validateEmail(String? email) {
+  if (email == null || email.isEmpty) {
+    return AppStrings.requiredFieldError; // ✅ Using constant
+  }
+  if (!email.contains('@')) {
+    return AppStrings.invalidEmailError; // ✅ Using constant
+  }
+  return null;
+}
+
+// Usage in navigation
+Navigator.pushNamed(context, RouteNames.home); // ✅ Using constant
+
+// Usage in API calls
+final response = await http.get('${ApiEndpoints.baseUrl}${ApiEndpoints.users}');
+```
+
+#### ❌ DON'T: Hardcode strings throughout the codebase
+
+```dart
+// ❌ INCORRECT: Hardcoded strings scattered everywhere
+class LoginScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          TextField(
+            decoration: InputDecoration(
+              labelText: 'Email Address', // ❌ Hardcoded
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {},
+            child: Text('Login'), // ❌ Hardcoded
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ❌ Hardcoded error messages
+String? validateEmail(String? email) {
+  if (email == null || email.isEmpty) {
+    return 'This field is required'; // ❌ Hardcoded
+  }
+  if (!email.contains('@')) {
+    return 'Please enter a valid email address'; // ❌ Hardcoded (typo risk!)
+  }
+  return null;
+}
+
+// ❌ Hardcoded route names
+Navigator.pushNamed(context, '/home'); // ❌ Hardcoded (typo risk!)
+
+// ❌ Hardcoded API endpoints
+final response = await http.get('https://api.example.com/users'); // ❌ Hardcoded
+```
+
+**Why it matters:**
+- ❌ Inconsistent text across the app (e.g., "Login" vs "Log In" vs "Sign In")
+- ❌ Typos in hardcoded strings cause runtime errors (e.g., '/hom' instead of '/home')
+- ❌ Difficult to update text globally (must search and replace across many files)
+- ❌ Makes future localization/internationalization extremely difficult
+- ❌ No compile-time safety for string references
+- ✅ Centralized constants provide single source of truth
+- ✅ IDE autocomplete helps prevent typos
+- ✅ Easy to update text globally by changing one constant
+- ✅ Simplifies future localization efforts
+- ✅ Improves code searchability and refactoring
+
+**Exceptions (strings that should NOT be constants):**
+- Dynamic content from APIs or databases
+- User-generated content
+- Formatted strings with runtime variables (use string interpolation with constant templates)
+- Localized strings (use `intl`, `easy_localization`, or `flutter_localizations` packages instead)
+
+**Example with string interpolation:**
+```dart
+// ✅ CORRECT: Constant template with dynamic values
+class AppStrings {
+  static const String welcomeMessageTemplate = 'Welcome back, {name}!';
+  static const String itemsInCartTemplate = 'You have {count} items in your cart';
+}
+
+// Usage with interpolation
+String getWelcomeMessage(String userName) {
+  return AppStrings.welcomeMessageTemplate.replaceAll('{name}', userName);
+}
+
+// Or using Dart's string interpolation
+String getItemsMessage(int count) {
+  return 'You have $count items in your cart'; // Dynamic part is the variable
+}
+```
+
+---
+
 ## Dart/Flutter Best Practices
 
 ### Principle: Use const Constructors for Immutable Widgets
@@ -1323,6 +1501,8 @@ class User {
 
 - [ ] All types explicitly declared (no `dynamic` or `var` without type)
 - [ ] Variables use descriptive names with auxiliary verbs (isLoading, hasError)
+- [ ] String constants centralized in `lib/core/constants/app_constants.dart`
+- [ ] No hardcoded strings for UI labels, error messages, routes, or API endpoints
 - [ ] Functions are short (< 30 lines) with single purpose
 - [ ] Early returns used to avoid deep nesting
 - [ ] Composition preferred over inheritance
