@@ -1,5 +1,5 @@
 ---
-type: "always_apply"
+type: "manual"
 ---
 
 # Flutter Development Documentation
@@ -113,11 +113,28 @@ docs/
 
 ## 📊 Project Size Decision Matrix
 
-| Project Size | Screens | Developers | Timeline | State Management | Architecture |
-|--------------|---------|------------|----------|------------------|--------------|
-| **Small** | 1-5 | 1-2 | <3 months | setState, ValueNotifier | Component-based |
-| **Medium** | 5-20 | 2-5 | 3-12 months | Provider | Feature-first |
-| **Large** | 20+ | 5+ | 12+ months | BLoC/Cubit | Clean Architecture |
+| Project Size | Screens | Developers | Timeline | Recommended State Management | Architecture |
+|--------------|---------|------------|----------|------------------------------|--------------|
+| **Small** | 1-5 | 1-2 | <3 months | setState, ValueNotifier, Cubit | Component-based |
+| **Medium** | 5-20 | 2-5 | 3-12 months | Provider, Cubit | Feature-first |
+| **Large** | 20+ | 5+ | 12+ months | BLoC, Cubit | Clean Architecture |
+
+### 🎨 State Management Flexibility
+
+**Important:** The state management recommendations above are **guidelines, not requirements**. Choose based on:
+
+✅ **Developer Preference** - Use what you and your team are comfortable with
+✅ **Team Familiarity** - Leverage existing expertise rather than forcing a pattern
+✅ **Project Consistency** - Using the same pattern across all projects can improve productivity
+✅ **Complexity Needs** - Match the solution to your actual state complexity, not just project size
+
+**Valid Scenarios:**
+- 🟢 Using **Cubit in a small project** for consistency across your portfolio
+- 🟢 Using **Provider in a large project** if your team has deep Provider expertise
+- 🟢 **Mixing approaches** (e.g., Provider for simple state, Cubit for complex features)
+- 🟢 Using **BLoC from day one** if you know the project will scale significantly
+
+**The key principle:** Choose a state management solution that your team can implement correctly and maintain effectively, regardless of project size.
 
 ---
 
